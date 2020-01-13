@@ -1,5 +1,5 @@
 networkparams.N = 2^3;
-networkparams.chainlen = 2.^(0:log2(networkparams.N));
+networkparams.chainlen = 1:networkparams.N; %2.^(0:log2(networkparams.N));
 networkparams.gamma = 0.9;
 networkparams.beta = [0 0.05];
 networkparams.alpha = 1:10;
@@ -52,12 +52,38 @@ var_pcadecoder = cell(numcases,1);
 r2_pcadecoder = cell(numcases,1); 
 corr_pcadecoder = cell(numcases,1);
 
-for k=1:numcases
+parfor k=1:numcases
     fprintf(['simulating case #' num2str(k) ' of ' num2str(numcases) '\n'])
     W = DesignNonNormal(N(k),chainlen(k),gamma(k),beta(k),alpha(k));
     [wts_decoder{k},var_decoder{k},r2_decoder{k},corr_decoder{k},...
         wts_pcadecoder{k},var_pcadecoder{k},r2_pcadecoder{k},corr_pcadecoder{k}] = ...
         DecodeMultivariateSignal(W,density(k),rho(k),loc(k),signalparams.var,noiseparams.var,kmax);
+end
+
+%% save
+params.gamma = gamma;
+params.beta = beta;
+params.alpha = alpha;
+params.chainlen = chainlen;
+params.N = N;
+params.density = density;
+params.rho = rho;
+params.loc = loc;
+decoder.wts = wts_decoder;
+decoder.var = var_decoder;
+decoder.r2 = r2_decoder;
+decoder.corr = corr_decoder;
+pcdecoder.wts = wts_pcadecoder;
+pcdecoder.var = var_pcadecoder;
+pcdecoder.r2 = r2_pcadecoder;
+pcdecoder.corr = corr_pcadecoder;
+signalparams.maxlag = kmax;
+save('AnalyseNonnormal.mat','params','signalparams','noiseparams','decoder','pcdecoder');
+
+%% plot results
+plotresults = false;
+if plotresults
+    decoder.corr{i}
 end
 
 %% function to design connectivity
@@ -139,6 +165,5 @@ function [wts_decoder,var_decoder,r2_decoder,corr_decoder,...
             r2_pcadecoder(k+1,m) = 1 - (mean((s_train - X_train*wts).^2)/var(s_train));
             corr_pcadecoder(k+1,m) = corr(s_train , X_train*wts);
         end
-    end
-    
+    end            
 end
