@@ -99,8 +99,8 @@ for i=1:numalphas
         if ~isempty(nets)
             [~,indx] = sort(density(nets)); nets = nets(indx); % sort by density
             % plot each d,rho
-            subplot(numalphas,numchainlens,numchainlens*(i-1)+j); hold on;
-%             figure; hold on;
+%             subplot(numalphas,numchainlens,numchainlens*(i-1)+j); hold on;
+            figure; hold on;
             for k=1:numel(nets), plot(0:signalparams.maxlag(:),mean(decoder.corr{nets(k)},2),'linewidth',0.25);
                 lgnd{k} = ['\it d=' num2str(density(nets(k))) '$$\rho$$=' num2str(rho(nets(k)))];
             end
