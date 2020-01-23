@@ -4,12 +4,12 @@ networkparams.gamma = 0.9;
 networkparams.beta = [0 0.05];
 networkparams.alpha = 1:10;
 
-kmax = 50;
+signalparams.maxlag = 50;
 signalparams.density = (1:2:networkparams.N)/networkparams.N; % signal density
 signalparams.rho = 0:0.25:1; % input signal correlation
 signalparams.loc = 1;
 signalparams.var = 1; % input signal variance
-noiseparams.var = 1; % noise variance
+noiseparams.var = 0.1; % noise variance
 
 %% construct combinations of parameters
 [gamma,beta,alpha,N,chainlen,density,rho,loc] = ...
@@ -40,44 +40,49 @@ N(duplicates) = []; chainlen(duplicates) = [];
 density(duplicates) = []; rho(duplicates) = []; loc(duplicates) = [];
 
 %% count cases
+numrepeats = 10;
 numcases = numel(gamma);
 
-%% simulate each combination
-wts_decoder = cell(numcases,1); 
-var_decoder = cell(numcases,1);
-r2_decoder = cell(numcases,1); 
-corr_decoder = cell(numcases,1);
-wts_pcadecoder = cell(numcases,1); 
-var_pcadecoder = cell(numcases,1);
-r2_pcadecoder = cell(numcases,1); 
-corr_pcadecoder = cell(numcases,1);
-
-parfor k=1:numcases
-    fprintf(['simulating case #' num2str(k) ' of ' num2str(numcases) '\n'])
-    W = DesignNonNormal(N(k),chainlen(k),gamma(k),beta(k),alpha(k));
-    [wts_decoder{k},var_decoder{k},r2_decoder{k},corr_decoder{k},...
-        wts_pcadecoder{k},var_pcadecoder{k},r2_pcadecoder{k},corr_pcadecoder{k}] = ...
-        DecodeMultivariateSignal(W,density(k),rho(k),loc(k),signalparams.var,noiseparams.var,kmax);
+for m=1*numrepeats
+    %% simulate each combination
+    wts_decoder = cell(numcases,1);
+    var_decoder = cell(numcases,1);
+    r2_decoder = cell(numcases,1);
+    corr_decoder = cell(numcases,1);
+    wts_pcadecoder = cell(numcases,1);
+    var_pcadecoder = cell(numcases,1);
+    r2_pcadecoder = cell(numcases,1);
+    corr_pcadecoder = cell(numcases,1);
+    
+    parfor k=1:numcases
+        fprintf(['simulating case #' num2str(k) ' of ' num2str(numcases) '\n'])
+        W = DesignNonNormal(N(k),chainlen(k),gamma(k),beta(k),alpha(k));
+        [wts_decoder{k},var_decoder{k},r2_decoder{k},corr_decoder{k},...
+            wts_pcadecoder{k},var_pcadecoder{k},r2_pcadecoder{k},corr_pcadecoder{k}] = ...
+            DecodeMultivariateSignal(W,density(k),rho(k),loc(k),...
+            signalparams.var,noiseparams.var,signalparams.maxlag);
+    end
+    
+    %% save
+    params(m).gamma = gamma;
+    params(m).beta = beta;
+    params(m).alpha = alpha;
+    params(m).chainlen = chainlen;
+    params(m).N = N;
+    params(m).density = density;
+    params(m).rho = rho;
+    params(m).loc = loc;
+    decoder(m).wts = wts_decoder;
+    decoder(m).var = var_decoder;
+    decoder(m).r2 = r2_decoder;
+    decoder(m).corr = corr_decoder;
+    pcdecoder(m).wts = wts_pcadecoder;
+    pcdecoder(m).var = var_pcadecoder;
+    pcdecoder(m).r2 = r2_pcadecoder;
+    pcdecoder(m).corr = corr_pcadecoder;
+    signalparam(m) = signalparams;
+    noiseparam(m) = noiseparams;
 end
-
-%% save
-params.gamma = gamma;
-params.beta = beta;
-params.alpha = alpha;
-params.chainlen = chainlen;
-params.N = N;
-params.density = density;
-params.rho = rho;
-params.loc = loc;
-decoder.wts = wts_decoder;
-decoder.var = var_decoder;
-decoder.r2 = r2_decoder;
-decoder.corr = corr_decoder;
-pcdecoder.wts = wts_pcadecoder;
-pcdecoder.var = var_pcadecoder;
-pcdecoder.r2 = r2_pcadecoder;
-pcdecoder.corr = corr_pcadecoder;
-signalparams.maxlag = kmax;
 save('AnalyseNonnormal.mat','params','signalparams','noiseparams','decoder','pcdecoder');
 
 %% plot results
