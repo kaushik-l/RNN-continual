@@ -50,7 +50,6 @@ for i=1:numchainlens
     xlabel('Time lag, \it $$\Delta$$', 'Interpreter', 'Latex','Fontsize',14); 
     ylabel('Corr(\it s,$$\hat{s}$$)', 'Interpreter', 'Latex','Fontsize',14);
 end
-clear lgnd;
 
 %% effect of network parameters
 figure; hold on;
@@ -73,7 +72,6 @@ for i=1:numalphas
     xlabel('Time lag, \it $$\Delta$$', 'Interpreter', 'Latex','Fontsize',14); 
     ylabel('Corr(\it s,$$\hat{s}$$)', 'Interpreter', 'Latex','Fontsize',14);
 end
-clear lgnd;
 
 %% effect of network parameters
 figure; hold on;
@@ -88,7 +86,6 @@ title('Decoding precision, $$log(R^2) = g(k,\alpha)$$','Interpreter','Latex','Fo
 xlabel('chainlength, \it k','Interpreter','Latex','Fontsize',18); 
 ylabel('degree of non-normality, $$\alpha$$','Interpreter','Latex','Fontsize',18);
 h = colorbar; h.Label.String = 'log\it(R^2)'; h.FontSize = 14; hlim = h.Limits;
-clear lgnd;
 
 %% effect of signal properties
 figure; hold on;
@@ -102,49 +99,17 @@ for i=1:numalphas
         if ~isempty(nets)
             [~,indx] = sort(density(nets)); nets = nets(indx); % sort by density
             % plot each d,rho
-            subplot(numalphas,numchainlens,numchainlens*(i-1)+j); hold on;
-%             figure; hold on;
+%             subplot(numalphas,numchainlens,numchainlens*(i-1)+j); hold on;
+            figure; hold on;
             for k=1:numel(nets), plot(0:signalparams.maxlag(:),mean(decoder.corr{nets(k)},2),'linewidth',0.25);
                 lgnd{k} = ['\it d=' num2str(density(nets(k))) '$$\rho$$=' num2str(rho(nets(k)))];
             end
             set(gca,'Colororder',cmap); axis([0 signalparams.maxlag 0 0.5]);
-            set(gca,'XScale','log'); set(gca,'YScale','log');
         end
     end
     % add legend
     if i==numalphas && j==numchainlens, legend(lgnd,'Fontsize',10,'Interpreter','Latex'); end
 end
-clear lgnd;
-
-%% effect of signal properties
-% cmap = [[1 0 0]; [1 0.5 0.5]; winter(numalphas-1)];
-% % select signals of different params
-% for i=1:numdensities
-%     for j=1:numrhos
-%         figure; hold on;
-%         for k=1:numchainlens
-%             % select networks of different chain lengths
-%             nets = find(chainlen==chainlens(k) & density==densities(i) & rho==rhos(j) & minlocnets);
-%             % plot each chain length
-%             subplot(2,ceil(numchainlens/2),k); hold on;
-%             for m=1:numel(nets), plot(0:signalparams.maxlag(:),mean(decoder.corr{nets(m)},2),'linewidth',2);
-%                 lgnd{m} = ['\it \gamma=' num2str(gamma)...
-%                     '\it \beta=' num2str(beta(nets(m))) ', \it \alpha=' num2str(alpha(nets(m)))];
-%             end
-%             set(gca,'Colororder',cmap); axis([0 signalparams.maxlag 0 0.5]);
-%             % add title
-%             if k==1, title(['chainlength, \it l = ' num2str(chainlens(i))],'Interpreter','Latex','Fontsize',14);
-%             else, title(['\it l = ' num2str(chainlens(k))],'Interpreter','Latex','Fontsize',14); end
-%             % add legend
-%             if k==numchainlens, legend(lgnd,'Fontsize',10); end
-%             % add axis labels
-%             xlabel('Time lag, \it $$\Delta$$', 'Interpreter', 'Latex','Fontsize',14);
-%             ylabel('Corr(\it s,$$\hat{s}$$)', 'Interpreter', 'Latex','Fontsize',14);
-%         end
-%         sgtitle(['\it d = ' num2str(densities(i)) ', $$\rho$$ = ' num2str(rhos(j))]);
-%     end
-% end
-% clear lgnd;
 
 %% effect of signal properties
 figure; hold on;
@@ -170,43 +135,3 @@ end
 % add global title
 sgtitle('Decoding precision, $$log(R^2) = g(k,\alpha,\it d, \rho)$$',...
     'Interpreter','Latex','Fontsize',18);
-
-%% effect of signal properties
-figure; hold on;
-% select signals of different params
-for i=1:numdensities
-    numinputs = densities(i)*N;
-    for j=1:numrhos
-        nets = find(density==densities(i) & rho==rhos(j) & minlocnets);
-        corr_decode = mean([decoder.corr{nets}]); % average across timelags
-        corr_decode = reshape(corr_decode,[numinputs numel(corr_decode)/numinputs]); 
-        corr_decode = mean(corr_decode,1); % average across signal components
-        corr_decode = [corr_decode(1)*ones(numalphas,1) ; corr_decode(:)];
-        corr_decodeMat = reshape(corr_decode,[numalphas+numbetas-1 numchainlens]);
-        subplot(numdensities,numrhos,numrhos*(i-1)+j);
-        imagesc(chainlens,[0 ; alphas],corr_decodeMat,[0 0.2]); colormap(parula); axis tight;
-        set(gca,'YDir','normal')
-        % add title
-        title(['\it d = ' num2str(densities(i)) ', $$\rho$$ = ' num2str(rhos(j))],...
-            'Interpreter','Latex','Fontsize',12);
-        xlabel('\it k','Interpreter','Latex','Fontsize',14);
-        ylabel('$$\alpha$$','Interpreter','Latex','Fontsize',14);
-    end
-end
-% add global title
-sgtitle('Decoding precision, $$Corr(\it s, \hat{s}) = g(k,\alpha,\it d, \rho)$$',...
-    'Interpreter','Latex','Fontsize',18);
-
-%% effect of signal properties
-figure; hold on;
-% select signals of different params
-for i=1:numdensities
-    for j=1:numrhos
-        nets = find(density==densities(i) & rho==rhos(j) & minlocnets);
-        [~,bestnet(i,j,:)] = ...
-            max(cell2mat(cellfun(@(x) mean(x,2), decoder.corr(nets), 'UniformOutput', false)'),[],2);
-        subplot(numdensities,numrhos,numrhos*(i-1)+j); hold on;
-        plot(chainlen(squeeze(bestnet(i,j,:))),'-s'); ylim([0 8]);
-        yyaxis right; plot(alpha(squeeze(bestnet(i,j,:))),'-s'); ylim([0 10]);     
-    end
-end
