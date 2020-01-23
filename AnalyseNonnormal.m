@@ -88,7 +88,8 @@ save('AnalyseNonnormal.mat','params','signalparams','noiseparams','decoder','pcd
 %% plot results
 plotresults = false;
 if plotresults
-    decoder.corr{i}
+    if numrepeats>1, PlotNonnormalMean(params,signalparams,noiseparams,decoder,pcdecoder);
+    else, PlotNonnormal(params,signalparams,noiseparams,decoder,pcdecoder); end
 end
 
 %% function to design connectivity
