@@ -1,21 +1,22 @@
-function PlotNonnormal(params,signalparams,noiseparams,decoder,pcdecoder)
+function PlotNonnormalMean(params,signalparams,noiseparams,decoder,pcdecoder)
 
+numruns = numel(params);
 
 %% load network params
-chainlen = params.chainlen; chainlens = unique(chainlen); numchainlens = numel(chainlens); 
+chainlen = params(1).chainlen; chainlens = unique(chainlen); numchainlens = numel(chainlens); 
 minchainlen = min(chainlen); maxchainlen = max(chainlen);
-beta = params.beta; numbetas = numel(unique(beta));  minbeta = min(beta); maxbeta = max(beta);
-alpha = params.alpha; alphas = unique(alpha); numalphas = numel(alphas); 
+beta = params(1).beta; numbetas = numel(unique(beta));  minbeta = min(beta); maxbeta = max(beta);
+alpha = params(1).alpha; alphas = unique(alpha); numalphas = numel(alphas); 
 minalpha = min(alpha); maxalpha = max(alpha);
-gamma = unique(params.gamma);
-N = unique(params.N);
+gamma = unique(params(1).gamma);
+N = unique(params(1).N);
 
 %% load signal parameters
-density = params.density; densities = unique(density); numdensities = numel(densities);
+density = params(1).density; densities = unique(density); numdensities = numel(densities);
 mindensity = min(density); maxdensity = max(density);
-rho = params.rho; rhos = unique(rho); numrhos = numel(rhos);
+rho = params(1).rho; rhos = unique(rho); numrhos = numel(rhos);
 minrho = min(rho); maxrho = max(rho);
-loc = params.loc; minloc = min(loc);
+loc = params(1).loc; minloc = min(loc);
 
 %% identify cases correspond to minimum values of different parameters
 minchainnets = (chainlen==minchainlen); maxchainnets = (chainlen==maxchainlen);
@@ -36,9 +37,12 @@ for i=1:numchainlens
     nets = find(chainlen==chainlens(i) & mindensitynets & minrhonets & minlocnets);  
     % plot each chain length
     subplot(2,ceil(numchainlens/2),i); hold on;
-    for j=1:numel(nets), plot(0:signalparams.maxlag(:),decoder.corr{nets(j)},'linewidth',2); 
-    lgnd{j} = ['\it \gamma=' num2str(gamma)...
-        '\it \beta=' num2str(beta(nets(j))) ', \it \alpha=' num2str(alpha(nets(j)))]; 
+    for j=1:numel(nets)
+        decoder_corr = mean(cell2mat(arrayfun(@(m) decoder(m).corr{nets(j)},1:numruns,...
+            'UniformOutput',false)),2);
+        plot(0:signalparams.maxlag(:),decoder_corr,'linewidth',2);
+        lgnd{j} = ['\it \gamma=' num2str(gamma)...
+            '\it \beta=' num2str(beta(nets(j))) ', \it \alpha=' num2str(alpha(nets(j)))];
     end
     set(gca,'Colororder',cmap); axis([0 signalparams.maxlag 0 0.5]);
     % add title
@@ -60,8 +64,11 @@ for i=1:numalphas
     nets = find(beta>0 & alpha==alphas(i) & mindensitynets & minrhonets & minlocnets);  
     % plot each alpha
     subplot(2,ceil(numalphas/2),i); hold on;
-    for j=1:numel(nets), plot(0:signalparams.maxlag(:),decoder.corr{nets(j)},'linewidth',2); 
-    lgnd{j} = ['\it l=' num2str(chainlen(nets(j)))]; 
+    for j=1:numel(nets)
+        decoder_corr = mean(cell2mat(arrayfun(@(m) decoder(m).corr{nets(j)},1:numruns,...
+            'UniformOutput',false)),2);
+        plot(0:signalparams.maxlag(:),decoder_corr,'linewidth',2);
+        lgnd{j} = ['\it l=' num2str(chainlen(nets(j)))];
     end
     set(gca,'Colororder',cmap); axis([0 signalparams.maxlag 0 0.5]);
     % add title
@@ -79,7 +86,9 @@ clear lgnd;
 figure; hold on;
 % select networks of different params
 nets = find(mindensitynets & minrhonets & minlocnets);
-r2 = mean(log10([decoder.r2{nets}])); r2 = r2(:);
+r2 = mean(cell2mat(arrayfun(@(m) mean(real(log10([decoder(m).r2{nets}]))),...
+    1:numruns, 'UniformOutput', false)')); % average across timelags
+r2 = r2(:);
 r2 = [r2(1)*ones(numalphas,1) ; r2];
 r2Mat = reshape(r2,[numalphas+numbetas-1 numchainlens]);
 imagesc(chainlens,[0 ; alphas],r2Mat); colormap(parula); axis tight;
@@ -104,7 +113,10 @@ for i=1:numalphas
             % plot each d,rho
             subplot(numalphas,numchainlens,numchainlens*(i-1)+j); hold on;
 %             figure; hold on;
-            for k=1:numel(nets), plot(0:signalparams.maxlag(:),mean(decoder.corr{nets(k)},2),'linewidth',0.25);
+            for k=1:numel(nets)
+                decoder_corr = mean(cell2mat(arrayfun(@(m) mean(decoder(m).corr{nets(k)},2),...
+                    1:numruns, 'UniformOutput', false)),2);
+                plot(0:signalparams.maxlag(:),decoder_corr,'linewidth',0.25);
                 lgnd{k} = ['\it d=' num2str(density(nets(k))) '$$\rho$$=' num2str(rho(nets(k)))];
             end
             set(gca,'Colororder',cmap); axis([0 signalparams.maxlag 0 0.5]);
@@ -153,7 +165,8 @@ for i=1:numdensities
     numinputs = densities(i)*N;
     for j=1:numrhos
         nets = find(density==densities(i) & rho==rhos(j) & minlocnets);
-        r2 = mean(real(log10([decoder.r2{nets}]))); % average across timelags
+        r2 = mean(cell2mat(arrayfun(@(m) mean(real(log10([decoder(m).r2{nets}]))),...
+            1:numruns, 'UniformOutput', false)')); % average across timelags
         r2 = reshape(r2,[numinputs numel(r2)/numinputs]); r2 = mean(r2,1); % average across signal components
         r2 = [r2(1)*ones(numalphas,1) ; r2(:)];
         r2Mat = reshape(r2,[numalphas+numbetas-1 numchainlens]);
@@ -178,7 +191,8 @@ for i=1:numdensities
     numinputs = densities(i)*N;
     for j=1:numrhos
         nets = find(density==densities(i) & rho==rhos(j) & minlocnets);
-        corr_decode = mean([decoder.corr{nets}]); % average across timelags
+        corr_decode = mean(cell2mat(arrayfun(@(m) mean([decoder(m).corr{nets}]),...
+            1:numruns, 'UniformOutput', false)')); % average across timelags
         corr_decode = reshape(corr_decode,[numinputs numel(corr_decode)/numinputs]); 
         corr_decode = mean(corr_decode,1); % average across signal components
         corr_decode = [corr_decode(1)*ones(numalphas,1) ; corr_decode(:)];
@@ -203,10 +217,15 @@ figure; hold on;
 for i=1:numdensities
     for j=1:numrhos
         nets = find(density==densities(i) & rho==rhos(j) & minlocnets);
-        [~,bestnet(i,j,:)] = ...
-            max(cell2mat(cellfun(@(x) mean(x,2), decoder.corr(nets), 'UniformOutput', false)'),[],2);
+        for m=1:numruns
+            [~,bestnet(m,i,j,:)] = ...
+                max(cell2mat(cellfun(@(x) mean(x,2), decoder(m).corr(nets), 'UniformOutput', false)'),[],2);
+            bestchainlen(m,:) = chainlen(squeeze(bestnet(m,i,j,:)));
+            bestalpha(m,:) = alpha(squeeze(bestnet(m,i,j,:)));
+        end
         subplot(numdensities,numrhos,numrhos*(i-1)+j); hold on;
-        plot(chainlen(squeeze(bestnet(i,j,:))),'-s'); ylim([0 8]);
-        yyaxis right; plot(alpha(squeeze(bestnet(i,j,:))),'-s'); ylim([0 10]);     
+
+        plot(mean(bestchainlen),'-s'); ylim([0 8]);
+        yyaxis right; plot(mean(bestalpha),'-s'); ylim([0 10]);     
     end
 end
