@@ -40,10 +40,11 @@ N(duplicates) = []; chainlen(duplicates) = [];
 density(duplicates) = []; rho(duplicates) = []; loc(duplicates) = [];
 
 %% count cases
-numrepeats = 10;
+numrepeats = 50;
 numcases = numel(gamma);
 
-for m=1*numrepeats
+for m=1:numrepeats
+    fprintf(['******************simulating repetition #' num2str(m) ' of ' num2str(numrepeats) '******************\n']);
     %% simulate each combination
     wts_decoder = cell(numcases,1);
     var_decoder = cell(numcases,1);
@@ -55,7 +56,7 @@ for m=1*numrepeats
     corr_pcadecoder = cell(numcases,1);
     
     parfor k=1:numcases
-        fprintf(['simulating case #' num2str(k) ' of ' num2str(numcases) '\n'])
+        fprintf(['simulating case #' num2str(k) ' of ' num2str(numcases) '\n']);
         W = DesignNonNormal(N(k),chainlen(k),gamma(k),beta(k),alpha(k));
         [wts_decoder{k},var_decoder{k},r2_decoder{k},corr_decoder{k},...
             wts_pcadecoder{k},var_pcadecoder{k},r2_pcadecoder{k},corr_pcadecoder{k}] = ...
